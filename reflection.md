@@ -5,11 +5,55 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+
+Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
+Consider constraints (time available, priority, owner preferences)
+Produce a daily plan and explain why it chose that plan
+
+
+
+
 - What classes did you include, and what responsibilities did you assign to each?
+
+1) Pet
+    - Atributes 
+        - Name 
+        - Type  
+        - weight
+
+2) scheduler
+    - methods
+        - walk 
+        - meds
+        - feeding 
+        - grooming 
+        - enrichment
+
+3) task
+
+    - methods
+        - view Tasks
+        - add tasks 
+        - remove tasks 
+        - sort tasks 
+
+
+4) Owner
+    - Atributes 
+        - avalability  
+        - scheduler  (reference to a Scheduler — association)
+        - task       (reference to a Task — association)
+
+    - methods
+        - add pet 
+        - remove pet 
+
 
 **b. Design changes**
 
 - Did your design change during implementation?
+    Prior to prompting claude, I didnt specifify the assocations correctly
+
 - If yes, describe at least one change and why you made it.
 
 ---

@@ -1,0 +1,39 @@
+# PawPal+ UML Class Diagram
+
+```mermaid
+classDiagram
+    class Pet {
+        +String name
+        +String type
+        +float weight
+    }
+
+    class Scheduler {
+        +walk()
+        +meds()
+        +feeding()
+        +grooming()
+        +enrichment()
+    }
+
+    class Task {
+        +viewTasks()
+        +addTasks()
+        +removeTasks()
+        +sortTasks()
+    }
+
+    class Owner {
+        +availability
+        +Scheduler scheduler
+        +Task task
+        +addPet()
+        +removePet()
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Owner --> Scheduler : has a
+    Owner --> Task : has a
+    Scheduler --> Task : schedules
+    Task --> Pet : assigned to
+```
