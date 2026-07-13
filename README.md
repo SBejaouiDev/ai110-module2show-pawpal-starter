@@ -72,14 +72,22 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+PawPal+ now includes scheduling logic that goes beyond simply storing tasks. The core algorithms live in `pawpal_system.py`, and the Streamlit UI in `app.py` exposes them through task controls, filters, warnings, and schedule views.
 
-| Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Feature | Method(s) | What it does |
+|---------|-----------|--------------|
+| Priority-based schedule sorting | `Task.sort_tasks()`, `Scheduler.build_daily_plan()`, `_priority_sort_key()` | Orders pending tasks by effective priority, then date, time, pet name, and task type for stable results. |
+| Medication priority boost | `_effective_priority()` | Gives medication tasks an internal priority boost so they are less likely to be skipped when available care time is limited. |
+| Chronological sorting | `Task.sort_tasks_by_time()`, `_chronological_sort_key()` | Sorts tasks by date and time without considering priority, useful for viewing the day in order. |
+| Filter by pet and status | `Task.filter_tasks()`, `Scheduler.get_filtered_tasks()` | Returns only tasks for a selected pet and/or status such as `pending`, `complete`, or `skipped`. |
+| Task status updates | `ScheduledTask.mark_complete()`, `ScheduledTask.mark_skipped()` | Tracks whether a care task is still pending, completed, or intentionally skipped. |
+| Recurring tasks | `Scheduler.create_recurring_tasks()`, `Owner.add_task_series()` | Expands a task into additional daily or weekly due dates. Daily recurrence uses `date.today() + timedelta(days=1)` for the next due date. |
+| Conflict detection | `Scheduler.find_conflicts()`, `Scheduler.conflicts_for_task()` | Detects overlapping pending tasks on the same date using each task's start time and duration. |
+| Availability-aware planning | `Scheduler.build_daily_plan()`, `Owner.view_schedule()` | Builds a plan that fits inside the owner's available care minutes. |
+| Skipped-task reporting | `Scheduler.build_daily_plan_details()`, `Owner.view_schedule_details()` | Returns both the selected plan and tasks skipped because they did not fit within the available time. |
+| Owner/pet task ownership | `Scheduler.get_tasks_for_owner_pets()`, `Owner.add_task()` | Keeps generated schedules limited to tasks for pets owned by the current owner. |
+
+The app uses these methods to show current task filters, warn about conflicts before and after adding tasks, generate recurring task instances, and display the final schedule as a table, by pet, or by time block.
 
 ## 📸 Demo Walkthrough
 
