@@ -52,9 +52,11 @@ Produce a daily plan and explain why it chose that plan
 **b. Design changes**
 
 - Did your design change during implementation?
-    Prior to prompting claude, I didnt specifify the assocations correctly
-
 - If yes, describe at least one change and why you made it.
+
+    Prior to prompting claude, I didnt specifify the assocations correctly and didnt provide return types for the scheduler and task methods. A class called scheduledTasks was created and returns types were added. 
+
+
 
 ---
 
