@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time, timedelta
 
 import streamlit as st
 
@@ -36,6 +36,7 @@ def task_rows(tasks):
         {
             "Date": task.date,
             "Time": task.time,
+            "Window": task_window(task),
             "Pet": task.pet.name,
             "Task": task.task_type.title(),
             "Duration": task.duration_minutes,
@@ -66,13 +67,10 @@ def conflict_rows(conflicts):
         rows.append(
             {
                 "Date": first_task.date,
-                "Conflict": (
-                    f"{first_task.time} {first_task.pet.name} "
-                    f"{first_task.task_type.title()}"
-                    " overlaps "
-                    f"{second_task.time} {second_task.pet.name} "
-                    f"{second_task.task_type.title()}"
-                ),
+                "First task": task_label(first_task),
+                "First window": task_window(first_task),
+                "Second task": task_label(second_task),
+                "Second window": task_window(second_task),
             }
         )
     return rows
@@ -81,6 +79,13 @@ def conflict_rows(conflicts):
 def task_label(task):
     """Create a compact label for task selection controls."""
     return f"{task.date} {task.time} - {task.pet.name} {task.task_type.title()}"
+
+
+def task_window(task):
+    """Create a start-end display window for a scheduled task."""
+    start = datetime.strptime(task.time, "%H:%M")
+    end = start + timedelta(minutes=max(task.duration_minutes, 1))
+    return f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')}"
 
 
 def time_block(task):
@@ -212,7 +217,7 @@ if owner.pets:
 else:
     st.info("Add a pet before scheduling tasks.")
 
-current_tasks = owner.task.view_tasks()
+current_tasks = owner.scheduler.get_tasks_for_owner_pets(owner)
 if current_tasks:
     st.write("Current tasks")
     filter_col1, filter_col2, filter_col3 = st.columns(3)
@@ -236,17 +241,18 @@ if current_tasks:
         status=selected_status,
         sort_by=selected_sort,
     )
-    st.table(task_rows(visible_tasks))
+    if visible_tasks:
+        st.success(f"Showing {len(visible_tasks)} task(s) from the scheduler filter.")
+    else:
+        st.warning("No tasks match the selected pet/status filters.")
 
-    pending_or_complete_tasks = [
-        task for task in current_tasks if task.status in {"pending", "complete"}
-    ]
-    if pending_or_complete_tasks:
+    status_tasks = owner.scheduler.get_filtered_tasks(owner, sort_by="time")
+    if status_tasks:
         status_col1, status_col2 = st.columns(2)
         with status_col1:
             selected_status_task = st.selectbox(
                 "Task to update",
-                pending_or_complete_tasks,
+                status_tasks,
                 format_func=task_label,
             )
         with status_col2:
@@ -258,26 +264,54 @@ if current_tasks:
                 ),
             )
         if st.button("Update task status"):
-            selected_status_task.status = new_status
+            if new_status == "complete":
+                selected_status_task.mark_complete()
+            elif new_status == "skipped":
+                selected_status_task.mark_skipped()
+            else:
+                selected_status_task.status = "pending"
             st.success(f"Updated {task_label(selected_status_task)}.")
 
-    all_conflicts = owner.scheduler.find_conflicts(current_tasks)
-    if all_conflicts:
-        st.warning("Schedule conflicts detected.")
-        st.table(conflict_rows(all_conflicts))
+    st.write("Scheduler views")
+    task_tab, priority_tab, time_tab, conflict_tab = st.tabs(
+        ["Filtered", "Priority order", "Time order", "Conflicts"]
+    )
+    with task_tab:
+        if visible_tasks:
+            st.table(task_rows(visible_tasks))
+        else:
+            st.warning("No filtered tasks to display.")
+    with priority_tab:
+        priority_tasks = owner.scheduler.get_filtered_tasks(owner, sort_by="priority")
+        st.success("Priority order uses Scheduler.get_filtered_tasks(sort_by='priority').")
+        st.table(task_rows(priority_tasks))
+    with time_tab:
+        chronological_tasks = owner.scheduler.get_filtered_tasks(owner, sort_by="time")
+        st.success("Time order uses Scheduler.get_filtered_tasks(sort_by='time').")
+        st.table(task_rows(chronological_tasks))
+    with conflict_tab:
+        all_conflicts = owner.scheduler.find_conflicts(current_tasks)
+        if all_conflicts:
+            st.warning(f"Found {len(all_conflicts)} scheduling conflict(s).")
+            st.table(conflict_rows(all_conflicts))
+        else:
+            st.success("No overlapping pending tasks were found.")
 
 st.divider()
 
 st.subheader("Today's Schedule")
 
 if st.button("Generate schedule"):
-    schedule, skipped = owner.view_schedule_details()
+    schedule, skipped = owner.scheduler.build_daily_plan_details(
+        owner, owner.availability
+    )
     st.session_state["schedule"] = schedule
     st.session_state["skipped"] = skipped
 
 schedule = st.session_state.get("schedule", [])
 skipped = st.session_state.get("skipped", [])
 if schedule:
+    st.success(f"Generated {len(schedule)} scheduled task(s) within the time budget.")
     schedule_view = st.selectbox("Schedule view", ["Table", "By pet", "By time block"])
     if schedule_view == "Table":
         st.table(task_rows(schedule))
@@ -297,5 +331,7 @@ if schedule:
     if skipped:
         st.warning("Some pending tasks did not fit within the available care time.")
         st.table(skipped_rows(skipped))
+    else:
+        st.success("All pending tasks fit within the available care time.")
 else:
     st.info("No generated schedule yet.")

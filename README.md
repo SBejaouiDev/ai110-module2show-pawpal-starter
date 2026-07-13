@@ -1,5 +1,7 @@
 # PawPal+ (Module 2 Project)
 
+![PawPal+ app screenshot](pawpal.png)
+
 You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
 
 ## Scenario
@@ -21,6 +23,20 @@ Your final app should:
 - Generate a daily schedule/plan based on constraints and priorities
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
+
+## Features
+
+- **Priority-based scheduling:** Sorts pending pet care tasks by effective priority, then by date, time, pet name, and task type for predictable schedule order.
+- **Medication priority boost:** Gives medication tasks extra scheduling weight so they are less likely to be skipped when the owner has limited care time.
+- **Chronological sorting:** Displays tasks in calendar order by date and time, independent of priority.
+- **Pet and status filtering:** Filters tasks by selected pet and by status, including `pending`, `complete`, and `skipped`.
+- **Recurring task generation:** Expands daily or weekly recurring tasks into future scheduled tasks using `timedelta`.
+- **Conflict detection:** Detects overlapping pending tasks on the same date by comparing each task's start time and duration.
+- **Pre-add conflict warnings:** Checks a new task against existing tasks before adding it and warns the user if the new task overlaps.
+- **Availability-aware planning:** Builds a daily schedule that fits within the owner's available care minutes.
+- **Skipped task reporting:** Reports tasks that were not included in the generated schedule because they exceeded the available time budget.
+- **Task status management:** Allows tasks to be marked as pending, complete, or skipped, and excludes completed/skipped tasks from schedule planning and conflict detection.
+- **Owner/pet ownership validation:** Ensures owners can only schedule tasks for pets they own.
 
 ## Getting started
 
@@ -114,12 +130,27 @@ The app uses these methods to show current task filters, warn about conflicts be
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Follow these steps to try the Streamlit demo:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. Start the app with `streamlit run app.py`.
+2. In the **Owner** section, enter the owner's name and set **Available care time today**. This time budget controls which pending tasks fit into the generated schedule.
+3. In the **Pets** section, enter a pet name, species, and weight, then click **Add pet**. The pet table updates with the pet's task count.
+4. In the **Tasks** section, choose the pet, task type, time, date, duration, priority, repeat option, and reason. Click **Add task** to create the scheduled task. If the task overlaps another pending task, the app shows a warning and a conflict table.
+5. To test recurring tasks, set **Repeat** to `daily` or `weekly` and choose an **Additional repeats** value before clicking **Add task**. PawPal+ creates the original task plus generated future tasks.
+6. Use **Filter by pet**, **Filter by status**, and **Sort tasks** to view a focused task list. The **Scheduler views** tabs show the same tasks as filtered results, priority order, chronological order, and conflict checks.
+7. Use **Task to update** and **New status** to mark a task as `pending`, `complete`, or `skipped`. Completed and skipped tasks are excluded from conflict detection and daily planning.
+8. Click **Generate schedule** in **Today's Schedule**. The app builds an availability-aware plan using the scheduler, then displays the result as a table, by pet, or by time block.
+9. If every pending task fits, the app shows a success message. If some tasks exceed the owner's available care time, the skipped-task table explains which tasks were left out.
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+Sample CLI output from `python3 main.py`:
+
+```text
+Today's Schedule
+================
+09:15 - Luna: Meds (5 min, priority 3)
+08:00 - Mochi: Feeding (10 min, priority 3)
+12:30 - Mochi: Walk (30 min, priority 2)
+17:00 - Luna: Enrichment (20 min, priority 1)
+```
+
+**Screenshot or video** *(optional)*: Add a screenshot of the generated schedule table or conflict warning here.

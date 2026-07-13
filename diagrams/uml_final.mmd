@@ -1,0 +1,74 @@
+classDiagram
+    class Owner {
+        +int availability
+        +Scheduler scheduler
+        +Task task
+        +list~Pet~ pets
+        +add_pet(pet) Pet
+        +remove_pet(pet) Pet
+        +add_task(task) ScheduledTask
+        +add_task_series(task) list~ScheduledTask~
+        +view_schedule() list~ScheduledTask~
+        +view_schedule_details() tuple
+    }
+
+    class Pet {
+        +String name
+        +String type
+        +float weight
+        +list~ScheduledTask~ tasks
+        +add_task(task) ScheduledTask
+    }
+
+    class ScheduledTask {
+        +String task_type
+        +Pet pet
+        +String time
+        +int priority
+        +int duration_minutes
+        +String reason
+        +String status
+        +String date
+        +String recurrence
+        +int repeat_count
+        +mark_complete() ScheduledTask
+        +mark_skipped() ScheduledTask
+    }
+
+    class Task {
+        +list~ScheduledTask~ tasks
+        +view_tasks() list~ScheduledTask~
+        +add_tasks(task) ScheduledTask
+        +remove_tasks(task) ScheduledTask
+        +sort_tasks() list~ScheduledTask~
+        +sort_tasks_by_time() list~ScheduledTask~
+        +tasks_for_pet(pet) list~ScheduledTask~
+        +tasks_for_pets(pets) list~ScheduledTask~
+        +filter_tasks(pet, status, sort_by) list~ScheduledTask~
+    }
+
+    class Scheduler {
+        +walk(pet, time, priority, duration_minutes, reason, date, recurrence, repeat_count) ScheduledTask
+        +meds(pet, time, priority, duration_minutes, reason, date, recurrence, repeat_count) ScheduledTask
+        +feeding(pet, time, priority, duration_minutes, reason, date, recurrence, repeat_count) ScheduledTask
+        +grooming(pet, time, priority, duration_minutes, reason, date, recurrence, repeat_count) ScheduledTask
+        +enrichment(pet, time, priority, duration_minutes, reason, date, recurrence, repeat_count) ScheduledTask
+        +get_all_tasks(owner) list~ScheduledTask~
+        +get_tasks_for_owner_pets(owner) list~ScheduledTask~
+        +get_filtered_tasks(owner, pet, status, sort_by) list~ScheduledTask~
+        +create_recurring_tasks(task) list~ScheduledTask~
+        +find_conflicts(tasks) list~tuple~
+        +conflicts_for_task(task, existing_tasks) list~ScheduledTask~
+        +build_daily_plan(owner, available_minutes) list~ScheduledTask~
+        +build_daily_plan_details(owner, available_minutes) tuple
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Owner "1" --> "1" Scheduler : has
+    Owner "1" --> "1" Task : manages
+    Pet "1" o-- "*" ScheduledTask : has
+    Task "1" o-- "*" ScheduledTask : stores
+    ScheduledTask "*" --> "1" Pet : for
+    Scheduler ..> ScheduledTask : creates
+    Scheduler ..> Task : filters and sorts
+    Scheduler ..> Owner : builds schedule for
