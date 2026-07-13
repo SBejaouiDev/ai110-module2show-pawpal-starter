@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 import pytest
 
+import pawpal_system
 from pawpal_system import Owner, Pet, ScheduledTask
 
 
@@ -88,6 +89,47 @@ def test_tasks_can_be_sorted_chronologically():
     assert owner.task.sort_tasks_by_time() == [earlier, later]
 
 
+def test_chronological_sort_uses_date_time_pet_and_task_type_tiebreakers():
+    owner = Owner()
+    zelda = Pet("Zelda", "dog", 18.0)
+    bella = Pet("Bella", "cat", 9.0)
+    owner.add_pet(zelda)
+    owner.add_pet(bella)
+
+    later_date = owner.scheduler.walk(
+        bella, "07:30", 3, duration_minutes=20, date="2026-07-13"
+    )
+    later_time = owner.scheduler.feeding(
+        bella, "09:00", 3, duration_minutes=10, date="2026-07-12"
+    )
+    same_time_later_pet = owner.scheduler.walk(
+        zelda, "08:00", 3, duration_minutes=20, date="2026-07-12"
+    )
+    same_time_earlier_pet_later_type = owner.scheduler.meds(
+        bella, "08:00", 3, duration_minutes=5, date="2026-07-12"
+    )
+    same_time_earlier_pet_earlier_type = owner.scheduler.feeding(
+        bella, "08:00", 3, duration_minutes=10, date="2026-07-12"
+    )
+
+    for task in [
+        later_date,
+        later_time,
+        same_time_later_pet,
+        same_time_earlier_pet_later_type,
+        same_time_earlier_pet_earlier_type,
+    ]:
+        owner.add_task(task)
+
+    assert owner.task.sort_tasks_by_time() == [
+        same_time_earlier_pet_earlier_type,
+        same_time_earlier_pet_later_type,
+        same_time_later_pet,
+        later_time,
+        later_date,
+    ]
+
+
 def test_tasks_can_be_filtered_by_pet_and_status():
     owner = Owner()
     dog = Pet("Mochi", "dog", 22.5)
@@ -134,6 +176,46 @@ def test_recurring_tasks_expand_into_future_dates():
     assert len(owner.task.view_tasks()) == 3
 
 
+def test_weekly_recurring_tasks_expand_from_today_and_reset_recurrence(monkeypatch):
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 7, 12)
+
+    monkeypatch.setattr(pawpal_system, "date_cls", FixedDate)
+
+    owner = Owner()
+    pet = Pet("Mochi", "dog", 22.5)
+    owner.add_pet(pet)
+    task = owner.scheduler.meds(
+        pet,
+        "08:00",
+        3,
+        duration_minutes=5,
+        reason="Heartworm prevention",
+        date="2026-07-12",
+        recurrence="weekly",
+        repeat_count=2,
+    )
+
+    tasks = owner.add_task_series(task)
+
+    assert [scheduled_task.date for scheduled_task in tasks] == [
+        "2026-07-12",
+        "2026-07-19",
+        "2026-07-26",
+    ]
+    assert [scheduled_task.recurrence for scheduled_task in tasks] == [
+        "weekly",
+        "none",
+        "none",
+    ]
+    assert [scheduled_task.repeat_count for scheduled_task in tasks] == [2, 0, 0]
+    assert all(scheduled_task.task_type == "meds" for scheduled_task in tasks)
+    assert all(scheduled_task.pet == pet for scheduled_task in tasks)
+    assert all(scheduled_task.duration_minutes == 5 for scheduled_task in tasks)
+
+
 def test_conflict_detection_finds_overlapping_pending_tasks():
     owner = Owner()
     pet = Pet("Mochi", "dog", 22.5)
@@ -153,6 +235,50 @@ def test_conflict_detection_finds_overlapping_pending_tasks():
     owner.add_task(later_feeding)
 
     assert owner.scheduler.find_conflicts(owner.task.view_tasks()) == [(walk, meds)]
+
+
+def test_conflict_detection_ignores_non_conflicts_and_non_pending_tasks():
+    owner = Owner()
+    pet = Pet("Mochi", "dog", 22.5)
+    owner.add_pet(pet)
+
+    walk = owner.scheduler.walk(
+        pet, "08:00", 3, duration_minutes=30, date="2026-07-12"
+    )
+    adjacent_feeding = owner.scheduler.feeding(
+        pet, "08:30", 2, duration_minutes=10, date="2026-07-12"
+    )
+    overlapping_meds = owner.scheduler.meds(
+        pet, "08:15", 3, duration_minutes=5, date="2026-07-12"
+    )
+    completed_overlap = owner.scheduler.grooming(
+        pet, "08:10", 2, duration_minutes=20, date="2026-07-12"
+    )
+    completed_overlap.mark_complete()
+    different_day_overlap = owner.scheduler.enrichment(
+        pet, "08:10", 2, duration_minutes=20, date="2026-07-13"
+    )
+    zero_minute_same_start = owner.scheduler.feeding(
+        pet, "09:00", 1, duration_minutes=0, date="2026-07-12"
+    )
+    zero_minute_collision = owner.scheduler.meds(
+        pet, "09:00", 1, duration_minutes=0, date="2026-07-12"
+    )
+
+    tasks = [
+        walk,
+        adjacent_feeding,
+        overlapping_meds,
+        completed_overlap,
+        different_day_overlap,
+        zero_minute_same_start,
+        zero_minute_collision,
+    ]
+
+    assert owner.scheduler.find_conflicts(tasks) == [
+        (walk, overlapping_meds),
+        (zero_minute_same_start, zero_minute_collision),
+    ]
 
 
 def test_schedule_details_reports_tasks_skipped_by_availability():

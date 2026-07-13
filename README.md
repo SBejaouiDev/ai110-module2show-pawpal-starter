@@ -56,18 +56,41 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 
 ## 🧪 Testing PawPal+
 
-```bash
-# Run the full test suite:
-pytest
+Run the full test suite with:
 
-# Run with coverage:
+```bash
+python -m pytest
+```
+
+Run with coverage:
+
+```bash
 pytest --cov
 ```
 
-Sample test output:
+## Testing PawPal ++
 
-```
-# Paste your pytest output here
+The tests cover the most important PawPal+ scheduling behaviors:
+
+- Sorting correctness: verifies chronological ordering by date, time, pet name, and task type so tied tasks appear in a predictable order.
+- Recurrence logic: verifies daily and weekly recurring tasks expand into the expected future dates and generated follow-up tasks do not accidentally keep recurring forever.
+- Conflict detection: verifies overlapping pending tasks are reported, while completed tasks, tasks on different dates, and back-to-back tasks are ignored.
+- Availability planning: verifies high-priority care tasks are selected first and tasks that do not fit in the owner's available care time are reported as skipped.
+- Ownership rules: verifies owners only schedule tasks for pets they own.
+
+Successful output from `python -m pytest`:
+
+```text
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/sebastianbejaoui/Desktop/Software projects/AI 101/ai110-module2show-pawpal-starter
+plugins: anyio-4.10.0
+collected 15 items
+
+test_paypal.py ..                                                        [ 13%]
+tests/test_pawpal_system.py .............                                [100%]
+
+============================== 15 passed in 0.02s ==============================
 ```
 
 ## 📐 Smarter Scheduling
